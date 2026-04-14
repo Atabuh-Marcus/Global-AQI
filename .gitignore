@@ -1,0 +1,22 @@
+# Frontend
+Global-AQI-Frontend/node_modules/
+Global-AQI-Frontend/dist/
+Global-AQI-Frontend/.vite/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+.venv/
+venv/
+
+# macOS
+.DS_Store
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Logs
+*.log
+/tmp/

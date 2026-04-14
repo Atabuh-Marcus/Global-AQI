@@ -1,0 +1,24 @@
+{
+  "categorical_features": [
+    "City",
+    "DayOfWeek"
+  ],
+  "numerical_features": [
+    "Latitude",
+    "Longitude",
+    "PM2.5",
+    "PM10",
+    "NO2",
+    "SO2",
+    "CO",
+    "Ozone",
+    "Aerosol_Optical_Depth"
+  ],
+  "classes": [
+    "Good",
+    "Hazardous",
+    "Moderate",
+    "Unhealthy",
+    "Unhealthy for Sensitive"
+  ]
+}
