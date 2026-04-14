@@ -2,6 +2,14 @@ import { useState } from 'react'
 import { api } from '../api/client'
 import type { AQIPredictionResponse } from '../types/api'
 
+/**
+ * Pre-formatted example JSON for three cities spanning the full severity range:
+ *   Lahore  → Unhealthy (high PM values)
+ *   Tokyo   → Good/Moderate (low PM values)
+ *   Delhi   → Hazardous (very high PM values)
+ * Shown in the textarea by default and restored by the "Load example" button.
+ * null + 2 args to JSON.stringify produce pretty-printed output.
+ */
 const EXAMPLE_BATCH = JSON.stringify(
   [
     {
@@ -21,6 +29,8 @@ const EXAMPLE_BATCH = JSON.stringify(
   2
 )
 
+// Colour maps reused from PredictionCard — duplicated here to keep BatchTab self-contained
+// (avoids a shared module just for two constants)
 const CLASS_COLORS: Record<string, string> = {
   Good: '#00e400',
   Moderate: '#ffff00',
@@ -37,7 +47,17 @@ const CLASS_TEXT: Record<string, string> = {
   Hazardous: '#fff',
 }
 
+/**
+ * Batch prediction tab.
+ * Accepts a raw JSON array in a textarea, parses it client-side, and sends it
+ * to POST /predict/batch. Results are displayed in a table with coloured class
+ * badges and a mini confidence bar per row.
+ *
+ * Client-side validation ensures the input is a JSON array before hitting the API,
+ * giving an immediate error rather than a confusing 422 from the backend.
+ */
 export function BatchTab() {
+  // json holds the raw textarea string — kept as a string so the user can type freely
   const [json, setJson] = useState(EXAMPLE_BATCH)
   const [results, setResults] = useState<AQIPredictionResponse[] | null>(null)
   const [loading, setLoading] = useState(false)
@@ -47,6 +67,7 @@ export function BatchTab() {
     setLoading(true)
     setError(null)
     try {
+      // JSON.parse throws a SyntaxError on invalid JSON — caught below
       const parsed = JSON.parse(json)
       if (!Array.isArray(parsed)) throw new Error('Input must be a JSON array')
       setResults(await api.predictBatch(parsed))
@@ -65,10 +86,12 @@ export function BatchTab() {
       </div>
 
       <div>
+        {/* Textarea header row: label on left, "Load example" shortcut on right */}
         <div className="flex items-center justify-between mb-1">
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
             JSON Input
           </label>
+          {/* Resets textarea to the built-in example so users can always get back to a known-good state */}
           <button
             onClick={() => setJson(EXAMPLE_BATCH)}
             className="text-xs text-blue-600 hover:underline"
@@ -76,11 +99,12 @@ export function BatchTab() {
             Load example (3 cities)
           </button>
         </div>
+        {/* Monospace font makes the JSON easier to read and edit */}
         <textarea
           className="w-full h-64 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           value={json}
           onChange={e => setJson(e.target.value)}
-          spellCheck={false}
+          spellCheck={false}  // disable red underlines on JSON strings
         />
       </div>
 
@@ -98,11 +122,14 @@ export function BatchTab() {
         </div>
       )}
 
+      {/* ── Results table ── only rendered after a successful response */}
       {results && (
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          {/* Header strip shows record count */}
           <div className="bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-300 uppercase tracking-wide">
             Results — {results.length} record{results.length !== 1 ? 's' : ''}
           </div>
+          {/* overflow-x-auto lets the table scroll horizontally on narrow viewports */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -115,12 +142,15 @@ export function BatchTab() {
               </thead>
               <tbody>
                 {results.map((r, i) => {
+                  // Highest probability across all classes = the model's confidence in its prediction
                   const topProb = Math.max(...Object.values(r.probabilities))
                   const bg = CLASS_COLORS[r.predicted_class] ?? '#94a3b8'
                   const txt = CLASS_TEXT[r.predicted_class] ?? '#1e293b'
                   return (
                     <tr key={i} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                      {/* Row index (1-based for readability) */}
                       <td className="px-4 py-3 text-slate-400 font-mono text-xs">{i + 1}</td>
+                      {/* Coloured pill badge matching the AQI class colour */}
                       <td className="px-4 py-3">
                         <span
                           className="inline-block rounded-full px-3 py-0.5 text-xs font-semibold"
@@ -129,7 +159,9 @@ export function BatchTab() {
                           {r.predicted_class}
                         </span>
                       </td>
+                      {/* Numeric confidence percentage */}
                       <td className="px-4 py-3 text-slate-700">{(topProb * 100).toFixed(1)}%</td>
+                      {/* Mini progress bar — width is absolute (0–100% of topProb) */}
                       <td className="px-4 py-3 w-40">
                         <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
                           <div
